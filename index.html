@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Diagnóstico y Tratamiento de Lesiones en Futbolistas</title>
+  <style>
+    /* Estilos CSS (mismos que en los ejemplos anteriores) */
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Diagnóstico y Tratamiento de Lesiones en Futbolistas</h1>
+    <label for="dolor">¿Siente dolor?</label>
+    <select id="dolor">
+      <option value="si">Sí</option>
+      <option value="no">No</option>
+    </select>
+    <label for="hinchazon">¿Tiene hinchazón?</label>
+    <select id="hinchazon">
+      <option value="si">Sí</option>
+      <option value="no">No</option>
+    </select>
+    <label for="dificultadParaCaminar">¿Tiene dificultad para caminar?</label>
+    <select id="dificultadParaCaminar">
+      <option value="si">Sí</option>
+      <option value="no">No</option>
+    </select>
+    <button id="diagnosticar">Realizar diagnóstico</button>
+    <div id="resultado"></div>
+    <div id="tratamiento"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script>
+    // Función para evaluar las reglas de inferencia
+    function evaluateRules(symptoms) {
+      const rules = [
+        {
+          conditions: [
+            { symptom: "dolor", value: "si" },
+            { symptom: "hinchazon", value: "si" },
+            { symptom: "dificultadParaCaminar", value: "si" }
+          ],
+          result: "Fractura"
+        },
+        {
+          conditions: [
+            { symptom: "dolor", value: "si" },
+            { symptom: "hinchazon", value: "si" }
+          ],
+          result: "Lesión moderada, considere reposo y tratamiento."
+        },
+        {
+          conditions: [
+            { symptom: "dolor", value: "si" },
+            { symptom: "hinchazon", value: "no" }
+          ],
+          result: "Posible lesión leve, monitorear los síntomas."
+        },
+        {
+          conditions: [
+            { symptom: "dolor", value: "no" },
+            { symptom: "hinchazon", value: "no" },
+            { symptom: "dificultadParaCaminar", value: "no" }
+          ],
+          result: "No se observan síntomas de lesión."
+        }
+      ];
+
+      for (const rule of rules) {
+        const conditionsMet = rule.conditions.every(cond => symptoms[cond.symptom] === cond.value);
+        if (conditionsMet) {
+          return rule.result;
+        }
+      }
+      return "No se puede determinar el diagnóstico en este momento.";
+    }
+
+    // Función para buscar tratamiento en línea
+    async function searchTreatment(query) {
+      try {
+        const response = await axios.get(`https://en.wikipedia.org/w/api.php?action=query&format=json&list=search&srsearch=${encodeURIComponent(query)}`);
+        const searchResults = response.data.query.search;
+
+        if (searchResults.length > 0) {
+          const topResult = searchResults[0];
+          const pageId = topResult.pageid;
+
+          const pageResponse = await axios.get(`https://en.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exintro=true&pageids=${pageId}`);
+          const extract = pageResponse.data.query.pages[pageId].extract;
+
+          return extract;
+        } else {
+          return "No se encontró información de tratamiento.";
+        }
+      } catch (error) {
+        console.error("Error al buscar información de tratamiento:", error);
+        return "Ocurrió un error al buscar información de tratamiento.";
+      }
+    }
+
+    // Función para realizar el diagnóstico y buscar tratamiento
+    async function diagnoseAndSearchTreatment() {
+      const symptoms = {
+        dolor: document.getElementById("dolor").value,
+        hinchazon: document.getElementById("hinchazon").value,
+        dificultadParaCaminar: document.getElementById("dificultadParaCaminar").value
+      };
+
+      const diagnosis = evaluateRules(symptoms);
+      document.getElementById("resultado").textContent = diagnosis;
+
+      if (diagnosis !== "No se puede determinar el diagnóstico en este momento.") {
+        const treatmentInfo = await searchTreatment(diagnosis);
+        document.getElementById("tratamiento").textContent = "Tratamiento sugerido:\n" + treatmentInfo;
+      } else {
+        document.getElementById("tratamiento").textContent = "";
+      }
+    }
+
+    // Evento click para realizar el diagnóstico y buscar tratamiento
+    document.getElementById("diagnosticar").addEventListener("click", diagnoseAndSearchTreatment);
+  </script>
+</body>
+</html>
